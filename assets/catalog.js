@@ -1,15 +1,23 @@
-/* Catalog filters: shelf, condition, search and sort. */
+/* Catalog filters: shelf, condition, search and sort. Works for both languages. */
 (function () {
+  var ar = document.documentElement.lang === 'ar';
   var grid = document.getElementById('grid');
   var cards = Array.prototype.slice.call(grid.querySelectorAll('.card'));
   var count = document.getElementById('count');
   var empty = document.getElementById('empty');
   var q = document.getElementById('q');
   var sort = document.getElementById('sort');
-  var state = { shelf: 'all', cond: 'all', q: '' };
-
   var params = new URLSearchParams(location.search);
-  if (params.get('shelf')) state.shelf = params.get('shelf');
+  var state = { shelf: params.get('shelf') || 'all', cond: params.get('cond') || 'all', q: '' };
+
+  function countLabel(n) {
+    if (!ar) return n === 1 ? '1 item' : n + ' items';
+    if (n === 0) return 'لا توجد قطع';
+    if (n === 1) return 'قطعة واحدة';
+    if (n === 2) return 'قطعتان';
+    if (n <= 10) return n + ' قطع';
+    return n + ' قطعة';
+  }
 
   function press(selector, attr, value) {
     document.querySelectorAll(selector).forEach(function (b) {
@@ -26,20 +34,22 @@
       c.hidden = !ok;
       if (ok) shown++;
     });
-    count.textContent = shown === 1 ? '1 item' : shown + ' items';
+    count.textContent = countLabel(shown);
     empty.hidden = shown !== 0;
     grid.hidden = shown === 0;
     press('.f-shelf', 'data-shelf', state.shelf);
     press('.f-cond', 'data-cond', state.cond);
-    var p = new URLSearchParams(location.search);
-    if (state.shelf === 'all') p.delete('shelf'); else p.set('shelf', state.shelf);
+    // Keep filters in the URL so links, refreshes and the language switch keep them.
+    var p = new URLSearchParams();
+    if (state.shelf !== 'all') p.set('shelf', state.shelf);
+    if (state.cond !== 'all') p.set('cond', state.cond);
     var s = p.toString();
-    history.replaceState(null, '', location.pathname + (s ? '?' + s : ''));
+    history.replaceState(null, '', location.pathname + (s ? '?' + s : '') + location.hash);
   }
 
   function resort() {
     var sorted = cards.slice().sort(function (a, b) {
-      if (sort.value === 'name') return a.dataset.name.localeCompare(b.dataset.name);
+      if (sort.value === 'name') return a.dataset.name.localeCompare(b.dataset.name, ar ? 'ar' : 'en');
       return b.dataset.code.localeCompare(a.dataset.code);
     });
     sorted.forEach(function (c) { grid.appendChild(c); });
